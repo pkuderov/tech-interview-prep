@@ -57,7 +57,7 @@ def _merge(n, a, b):
 # --------- RADIX SORT --------------
 
 
-def radixSort(n, a, base=10):
+def radixSort(n, a, base=100):
     a = list(zip(a, a))
 
     is_sorted = False
@@ -94,9 +94,14 @@ def writeResult(r):
 
 def main():
     # n, a = (6, [5, 10, 2, 3, 14, 5]) if IS_LOCAL else readInput()
-    n, a = (100, [randint(1, 10000) for _ in range(100)]) if IS_LOCAL else readInput()
+    n, a = (10000, [randint(1, 100) for _ in range(10000)])
+
+    if not IS_LOCAL:
+        n, a = readInput()
 
     sorted_a = radixSort(n, a)
+    # sorted_a = insertionSort(n, a)
+    # sorted_a = mergeSort(n, a)
     sorted_a2 = sorted(a)
     if sorted_a != sorted_a2:
         print("Sort mistake")
