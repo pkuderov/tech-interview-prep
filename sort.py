@@ -1,6 +1,7 @@
 # http://codeforces.com/problemset/problem/1092/B
 
 import sys
+from random import randint
 
 IS_LOCAL = False
 
@@ -56,6 +57,21 @@ def _merge(n, a, b):
 # --------- RADIX SORT --------------
 
 
+def radixSort(n, a, base=10):
+    a = list(zip(a, a))
+
+    is_sorted = False
+    while not is_sorted:
+        backets = [[] for i in range(base)]
+        for t, x in a:
+            backets[t % base].append((t//base, x))
+
+        a = [x for backet in backets for x in backet]
+        is_sorted = all([p[0] == 0 for p in a])
+
+    return [p[1] for p in a]
+
+
 # --------- THE PROBLEM -------------
 
 
@@ -77,9 +93,10 @@ def writeResult(r):
 
 
 def main():
-    n, a = (6, [5, 10, 2, 3, 14, 5]) if IS_LOCAL else readInput()
+    # n, a = (6, [5, 10, 2, 3, 14, 5]) if IS_LOCAL else readInput()
+    n, a = (100, [randint(1, 10000) for _ in range(100)]) if IS_LOCAL else readInput()
 
-    sorted_a = mergeSort(n, a)
+    sorted_a = radixSort(n, a)
     sorted_a2 = sorted(a)
     if sorted_a != sorted_a2:
         print("Sort mistake")
