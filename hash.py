@@ -9,151 +9,57 @@ IS_LOCAL = False
 
 
 class HashSet:
-    class HashBucket:
-        def __init__(self, value, next: 'HashSet.HashBucket' = None):
-            self.value = value
-            self.next = next
-
-    _max_frac = .5
-    _min_size = 7
-
-    def __init__(self):
-        self._n = 0
-        self._a: List['HashSet.HashBucket'] = [None] * self._min_size
-
-    @property
-    def is_empty(self):
-        return self._n == 0
-
-    @property
-    def items(self):
-        return [
-            list(self._get_bucket_value_iter(bucket))
-            for bucket in self._a
-        ]
-
-    @property
-    def _is_enough_space(self):
-        return self._n / len(self._a) <= self._max_frac
-
-    def add(self, x):
-        is_found, key_hash, bucket = self._findValueOrBucketToAdd(x)
-
-        if is_found:
-            return
-
-        if not self._is_enough_space:
-            self._extend()
-            _, key_hash, bucket = self._findValueOrBucketToAdd(x)
-
-        new_bucket = HashSet.HashBucket(x)
-        if bucket:
-            bucket.next = new_bucket
-        else:
-            self._a[key_hash] = new_bucket
-        self._n += 1
-
-    def __contains__(self, x):
-        is_found, _, _ = self._findValueOrBucketToAdd(x)
-        return is_found
-
-    def _findValueOrBucketToAdd(
-            self, x) -> Tuple[bool, int, 'HashSet.HashBucket']:
-        key_hash = self._hash(x, len(self._a))
-        bucket: HashSet.HashBucket = self._a[key_hash]
-
-        for bucket in self._get_bucket_iter(bucket):
-            if bucket.value == x:
-                return True, None, None
-        return False, key_hash, bucket
-
-    def _extend(self):
-        a: List['HashSet.HashBucket'] = self._a
-        self._n = 0
-        self._a = [None] * ((len(a) + 1) * 2 - 1)
-
-        for bucket in a:
-            for x in self._get_bucket_value_iter(bucket):
-                self.add(x)
-
-    @staticmethod
-    def _get_bucket_iter(bucket):
-        if not bucket:
-            return
-        while True:
-            yield bucket
-            if not bucket.next:
-                break
-            bucket = bucket.next
-
-    @staticmethod
-    def _get_bucket_value_iter(bucket):
-        for b in HashSet._get_bucket_iter(bucket):
-            yield b.value
-
-    @staticmethod
-    def _hash(x, mod):
-        return x % mod
-
-
-class HashSet2:
     _max_frac = 3.
     _min_size = 7
 
     def __init__(self):
         self._n = 0
-        self._a: List[List[int]] = [None] * self._min_size
+        self._size = self._min_size
+        self._a: List[List[int]] = [None] * self._size
+
+    def __contains__(self, key) -> bool:
+        _, key_exists = self._find(key)
+        return key_exists
 
     @property
-    def is_empty(self):
-        return self._n == 0
+    def buckets(self):
+        return [bucket or [] for bucket in self._a]
 
-    @property
-    def items(self):
-        return [
-            bucket if bucket else []
-            for bucket in self._a
-        ]
+    def add(self, key) -> None:
+        bucket, key_exists = self._find(key)
 
-    @property
-    def _is_enough_space(self):
-        return self._n / len(self._a) <= self._max_frac
-
-    def add(self, x):
-        is_found, key_hash, bucket = self._findValueOrBucketToAdd(x)
-
-        if is_found:
+        if key_exists:
             return
 
-        if not self._is_enough_space:
+        if not self._is_enough_space():
             self._extend()
-            _, key_hash, bucket = self._findValueOrBucketToAdd(x)
+            bucket, _ = self._find(key)
 
         if bucket:
-            bucket.append(x)
+            bucket.append(key)
         else:
-            self._a[key_hash] = [x]
+            self._a[self._hash(key)] = [key]
         self._n += 1
 
-    def __contains__(self, x):
-        is_found, _, _ = self._findValueOrBucketToAdd(x)
-        return is_found
+    def _find(self, key) -> Tuple[List[int], bool]:
+        bucket = self._find_bucket(key)
+        key_exists = self._find_key(key, bucket) if bucket else False
+        return bucket, key_exists
 
-    def _findValueOrBucketToAdd(
-            self, x) -> Tuple[bool, int, List[int]]:
-        key_hash = self._hash(x, len(self._a))
-        bucket: List[int] = self._a[key_hash]
+    def _find_bucket(self, key) -> List[int]:
+        return self._a[self._hash(key)]
 
-        if bucket:
-            for val in bucket:
-                if val == x:
-                    return True, None, None
-        return False, key_hash, bucket
+    def _find_key(self, key, bucket) -> bool:
+        for k in bucket:
+            if k == key:
+                return True
+        return False
 
-    def _extend(self):
+    def _extend(self) -> None:
         a = self._a
         self._n = 0
-        self._a = [None] * ((len(a) + 1) * 2 - 1)
+        self._size = (self._size + 1) * 2 - 1
+        self._a = [None] * self._size
 
         for bucket in a:
             if not bucket:
@@ -161,9 +67,13 @@ class HashSet2:
             for x in bucket:
                 self.add(x)
 
-    @staticmethod
-    def _hash(x, mod):
-        return x % mod
+    def _is_enough_space(self) -> bool:
+        return self._n / self._size <= self._max_frac
+
+    def _hash(self, x) -> int:
+        if not isinstance(x, int):
+            x = hash(x)
+        return x % self._size
 
 
 class HashTable:
@@ -176,15 +86,8 @@ class HashTable:
         self._a: List[List[Tuple[int, object]]] = [None] * self._size
 
     @property
-    def is_empty(self):
-        return self._n == 0
-
-    @property
-    def items(self):
-        return [
-            bucket if bucket else []
-            for bucket in self._a
-        ]
+    def buckets(self):
+        return [bucket or [] for bucket in self._a]
 
     def __iter__(self):
         for bucket in self._a:
@@ -193,21 +96,20 @@ class HashTable:
             for p in bucket:
                 yield p
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> object:
         bucket, index = self._find(key)
         return bucket[index][1]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         self.set(key, value)
 
-    @property
-    def _is_enough_space(self):
+    def _is_enough_space(self) -> bool:
         return self._n / self._size <= self._max_frac
 
-    def add(self, x):
+    def add(self, x) -> None:
         self.set(x, x)
 
-    def set(self, key, value):
+    def set(self, key, value) -> None:
         bucket, index = self._find(key)
 
         # update value
@@ -216,7 +118,7 @@ class HashTable:
             return
 
         # need to add new (key, value)
-        if not self._is_enough_space:
+        if not self._is_enough_space():
             self._extend()
             bucket, index = self._find(key)
 
@@ -227,11 +129,11 @@ class HashTable:
             self._a[key_hash] = [(key, value)]
         self._n += 1
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         _, index = self._find(key)
         return index is not None
 
-    def _extend(self):
+    def _extend(self) -> None:
         a = self._a
         self._n = 0
         self._size = ((self._size + 1) * 2 - 1)
@@ -256,7 +158,7 @@ class HashTable:
             if p[0] == key:
                 return i
 
-    def _hash(self, x):
+    def _hash(self, x) -> int:
         if not isinstance(x, int):
             x = hash(x)
         return x % self._size
@@ -270,7 +172,7 @@ def testHashSetPerf(container, a):
     print(f'add: {timer() - addTime}')
 
     readTime = timer()
-    assert(not [x for x in a if x not in container])
+    assert (not [x for x in a if x not in container])
     print(f'read: {timer() - readTime}')
 
     print('_______')
@@ -282,13 +184,10 @@ def testPerformance():
     testHashSetPerf(s, a)
     table = HashSet()
     testHashSetPerf(table, a)
-    table2 = HashSet2()
-    testHashSetPerf(table2, a)
     table3 = HashTable()
     testHashSetPerf(table3, a)
 
-    print(len(table._a), len([x for bucket in table.items for x in bucket]))
-    print(len(table2._a), len([x for bucket in table2.items for x in bucket]))
+    print(len(table._a), len([x for bucket in table.buckets for x in bucket]))
 
 
 def solve2A():
@@ -296,13 +195,12 @@ def solve2A():
         return p if not cur_winner or p[1] > cur_winner[1] else cur_winner
 
     n = 3
-    lines = (
-"""andrew 3
+    lines = ("""andrew 3
 andrew 1
 mike 5
 andrew -2
-andrew 4"""
-    ).split('\n')
+andrew 4""").split('\n')
+
     if not IS_LOCAL:
         n = int(input())
         lines = []
@@ -325,7 +223,8 @@ andrew 4"""
         for i, score in scores:
             t_score += score
             if t_score >= max_score:
-                if not winner or max_score > winner[1] or (max_score == winner[1] and i < winner[2]):
+                if not winner or max_score > winner[1] or (
+                        max_score == winner[1] and i < winner[2]):
                     winner = (name, max_score, i)
                 break
 
@@ -333,7 +232,8 @@ andrew 4"""
 
 
 def main():
-    solve2A()
+    # solve2A()
+    testPerformance()
 
 
 if __name__ == "__main__":
