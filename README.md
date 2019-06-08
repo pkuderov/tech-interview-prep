@@ -5,6 +5,8 @@
   - merge
   - radix
 - hash table
+  - naive dynamic hashset
+  - hash table
 - trees
   - binary
   - binary search
@@ -16,3 +18,4 @@
 - graphs
   - store vertices and edges as matrix, map of links
   - dijkstra
+- bloom filter
